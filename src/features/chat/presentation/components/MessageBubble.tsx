@@ -1,12 +1,36 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Markdown from 'react-native-markdown-display';  // Este nos ayuda a lo de negrilla
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Markdown from 'react-native-markdown-display'; // markdown para formatear el texto de la IA
+import * as Speech from 'expo-speech';
 import { Message } from '../../domain/entities/Message';
 
 interface Props { message: Message; }
 
 export const MessageBubble: React.FC<Props> = ({ message }) => {
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const isUser = message.role === 'user';
+
+  const getCleanText = (text: string) =>
+    text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/`(.*?)`/g, '$1')
+      .replace(/#{1,6}\s/g, '');
+
+  const toggleSpeech = () => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+    } else {
+      Speech.stop();
+      Speech.speak(getCleanText(message.content), {
+        language: 'es-ES',
+        onDone: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      });
+      setIsSpeaking(true);
+    }
+  };
 
   return (
     <View style={[styles.container, isUser ? styles.userContainer : styles.aiContainer]}>
@@ -17,11 +41,20 @@ export const MessageBubble: React.FC<Props> = ({ message }) => {
           <Markdown style={markdownStyles}>{message.content}</Markdown>
         )}
       </View>
-      <Text style={styles.timestamp}>
-        {message.timestamp.toLocaleTimeString('es-EC', {
-          hour: '2-digit', minute: '2-digit',
-        })}
-      </Text>
+      <View style={styles.footer}>
+        {!isUser && (
+          <TouchableOpacity onPress={toggleSpeech} style={styles.speechButton}>
+            <Text style={styles.speechText}>
+              {isSpeaking ? '⏹️ Detener' : '🔊 Escuchar'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.timestamp}>
+          {message.timestamp.toLocaleTimeString('es-EC', {
+            hour: '2-digit', minute: '2-digit',
+          })}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -30,18 +63,21 @@ const styles = StyleSheet.create({
   container: { marginVertical: 4, marginHorizontal: 12, maxWidth: '80%' },
   userContainer: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   aiContainer:  { alignSelf: 'flex-start', alignItems: 'flex-start' },
-  bubble:       { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  userBubble:   { backgroundColor: '#2563EB', borderBottomRightRadius: 4 },
-  aiBubble:     { backgroundColor: '#F1F5F9', borderBottomLeftRadius: 4 },
+  bubble:       { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 12 },
+  userBubble:   { backgroundColor: '#2C1810', borderBottomRightRadius: 4 },
+  aiBubble:     { backgroundColor: '#EDE8E1', borderBottomLeftRadius: 4 },
   text:         { fontSize: 15, lineHeight: 21, color: '#FFFFFF' },
   userText:     { color: '#FFFFFF' },
-  timestamp:    { fontSize: 10, color: '#94A3B8', marginTop: 2 },
+  footer:       { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 12 },
+  speechButton: { paddingVertical: 2 },
+  speechText:   { fontSize: 11, color: '#9B8B7A' },
+  timestamp:    { fontSize: 10, color: '#9B8B7A' },
 });
 
 const markdownStyles = StyleSheet.create({
   body: {
     fontSize: 15,
     lineHeight: 21,
-    color: '#1E293B',
+    color: '#2C1810',
   },
 });
