@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Permitir reconocimiento de voz para dictar mensajes.",
+        "NSMicrophoneUsageDescription": "Permitir acceso al micrófono para dictar mensajes."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +23,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.esauv.chatiaclean"
     },
     "web": {
       "output": "static",
@@ -37,6 +46,13 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permitir acceso al micrófono para dictar mensajes.",
+          "speechRecognitionPermission": "Permitir reconocimiento de voz para dictar mensajes."
         }
       ]
     ],

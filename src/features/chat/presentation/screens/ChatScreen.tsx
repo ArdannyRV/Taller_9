@@ -1,15 +1,33 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, FlatList, TextInput, TouchableOpacity,
   Text, StyleSheet, KeyboardAvoidingView, Platform,
   ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  useSpeechRecognitionEvent,
+  ExpoSpeechRecognitionModule,
+} from 'expo-speech-recognition';
 import { useChat } from '../hooks/useChat';
 import { MessageBubble } from '../components/MessageBubble';
 
 export const ChatScreen: React.FC = () => {
   const [inputText, setInputText] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { messages, isLoading, error, sendMessage, clearChat } = useChat();
+
+  useSpeechRecognitionEvent('result', useCallback((event) => {
+    const transcript = event.results[0]?.transcript ?? '';
+    setInputText(transcript);
+  }, []));
+
+  useSpeechRecognitionEvent('end', useCallback(() => {
+    setIsListening(false);
+  }, []));
+
+  useSpeechRecognitionEvent('error', useCallback(() => {
+    setIsListening(false);
+  }, []));
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
@@ -17,6 +35,23 @@ export const ChatScreen: React.FC = () => {
     setInputText('');
     await sendMessage(text);
     flatListRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const toggleListening = async () => {
+    if (isListening) {
+      await ExpoSpeechRecognitionModule.stop();
+      setIsListening(false);
+    } else {
+      try {
+        await ExpoSpeechRecognitionModule.start({
+          lang: 'es-EC',
+          interimResults: true,
+        });
+        setIsListening(true);
+      } catch {
+        setIsListening(false);
+      }
+    }
   };
 
   return (
@@ -49,6 +84,18 @@ export const ChatScreen: React.FC = () => {
           </View>
         )}
         <View style={styles.inputContainer}>
+          <TouchableOpacity
+            style={[
+              styles.micButton,
+              isListening ? styles.micButtonActive : styles.micButtonInactive,
+            ]}
+            onPress={toggleListening}
+            disabled={isLoading}
+          >
+            <Text style={styles.micIcon}>
+              {isListening ? '■' : '🎤'}
+            </Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             value={inputText}
@@ -135,4 +182,14 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { backgroundColor: '#93C5FD' },
   sendIcon: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
+  micButton: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  micButtonActive: { backgroundColor: '#EF4444' },
+  micButtonInactive: { backgroundColor: '#6B7280' },
+  micIcon: { fontSize: 16 },
 });
